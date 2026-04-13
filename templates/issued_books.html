@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Issued Books – Book Bank</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="{{ url_for('book.index') }}" class="navbar-brand"><span class="brand-icon">B</span> Book Bank</a>
+  <ul class="navbar-nav">
+    {% if session.role == 'librarian' %}
+      <li><a class="nav-link" href="{{ url_for('book.dashboard_librarian') }}">Dashboard</a></li>
+    {% else %}
+      <li><a class="nav-link" href="{{ url_for('book.dashboard_student') }}">Dashboard</a></li>
+    {% endif %}
+    <li><a class="nav-link" href="{{ url_for('book.books') }}">Books</a></li>
+    <li><a class="nav-link active" href="{{ url_for('issue.issued_books') }}">{% if session.role=='librarian' %}Issued Books{% else %}My Issues{% endif %}</a></li>
+    <li><a class="nav-link" href="{{ url_for('reservation.reservations') }}">Reservations</a></li>
+    {% if session.role == 'librarian' %}
+      <li><a class="nav-link" href="{{ url_for('book.manage_students') }}">Members</a></li>
+    {% endif %}
+  </ul>
+  <div class="navbar-user">
+    <span class="user-badge">{{ session.role }}</span>
+    <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost btn-sm">Logout</a>
+  </div>
+</nav>
+
+<div class="flash-container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash flash-{{ category }}" onclick="this.remove()">
+        <span>{{ message }}</span><span class="flash-close">&times;</span>
+      </div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>{% if role == 'librarian' %}All Issued Books{% else %}My Issued Books{% endif %}</h1>
+    <p>{% if role == 'librarian' %}Manage all book issues and record returns.{% else %}Your current and past issued books with fine details.{% endif %}</p>
+  </div>
+
+  {% if records %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          {% if role == 'librarian' %}<th>Member</th>{% endif %}
+          <th>Book Title</th>
+          <th>Author</th>
+          <th>Issue Date</th>
+          <th>Due Date</th>
+          <th>Return Date</th>
+          <th>Fine (₹)</th>
+          <th>Status</th>
+          {% if role == 'librarian' %}<th>Action</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+        {% set is_returned = r.return_date %}
+        <tr>
+          {% if role == 'librarian' %}
+          <td>
+            <strong>{{ r.student_name }}</strong><br>
+            <small style="color:var(--text-muted)">@{{ r.username }}</small>
+          </td>
+          {% endif %}
+          <td><strong>{{ r.book_name }}</strong></td>
+          <td style="color:var(--text-muted)">{{ r.author }}</td>
+          <td>{{ r.issue_date }}</td>
+          <td>
+            <span style="{% if not r.return_date and r.is_overdue %}color:var(--danger);font-weight:600{% endif %}">
+              {{ r.due_date }}
+            </span>
+          </td>
+          <td>{{ r.return_date or '—' }}</td>
+          <td>
+            {% if r.fine and r.fine > 0 %}
+              <span class="fine-amount">₹{{ "%.2f"|format(r.fine) }}</span>
+            {% elif r.return_date %}
+              <span class="fine-zero">None</span>
+            {% else %}
+              {% if r.is_overdue %}
+                <span class="fine-amount">Overdue</span>
+              {% else %}
+                <span class="fine-zero">—</span>
+              {% endif %}
+            {% endif %}
+          </td>
+          <td>
+            {% if r.return_date %}
+              <span class="badge badge-returned">Returned</span>
+            {% elif r.is_overdue %}
+              <span class="badge badge-overdue">Overdue</span>
+            {% else %}
+              <span class="badge badge-issued">Active</span>
+            {% endif %}
+          </td>
+          {% if role == 'librarian' %}
+          <td>
+            {% if not r.return_date %}
+            <form method="POST" action="{{ url_for('issue.return_book_route', issue_id=r.issue_id) }}"
+                  onsubmit="return confirm('Record return for this book?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-primary btn-sm">Return</button>
+            </form>
+            {% else %}
+              <span style="color:var(--text-muted);font-size:0.8rem">Done</span>
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <h3>No issued books yet</h3>
+    <p>{% if role == 'librarian' %}Issue a book from the books page.{% else %}Request a book from the catalogue to get started.{% endif %}</p>
+  </div>
+  {% endif %}
+</div>
+
+<script>setTimeout(() => { document.querySelectorAll('.flash').forEach(el => el.remove()); }, 5000);</script>
+</body>
+</html>

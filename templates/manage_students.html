@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Members – Book Bank</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="{{ url_for('book.index') }}" class="navbar-brand"><span class="brand-icon">B</span> Book Bank</a>
+  <ul class="navbar-nav">
+    <li><a class="nav-link" href="{{ url_for('book.dashboard_librarian') }}">Dashboard</a></li>
+    <li><a class="nav-link" href="{{ url_for('book.books') }}">Books</a></li>
+    <li><a class="nav-link" href="{{ url_for('issue.issued_books') }}">Issued Books</a></li>
+    <li><a class="nav-link" href="{{ url_for('reservation.reservations') }}">Reservations</a></li>
+    <li><a class="nav-link active" href="{{ url_for('book.manage_students') }}">Members</a></li>
+  </ul>
+  <div class="navbar-user">
+    <span class="user-badge">{{ session.role }}</span>
+    <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost btn-sm">Logout</a>
+  </div>
+</nav>
+
+<div class="flash-container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash flash-{{ category }}" onclick="this.remove()">
+        <span>{{ message }}</span><span class="flash-close">&times;</span>
+      </div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>Manage Members</h1>
+    <p>Add, view, or remove member accounts.</p>
+  </div>
+
+  <!-- Add Member Form -->
+  <div class="card" style="margin-bottom:2rem">
+    <h2 class="section-title" style="margin-bottom:1.25rem">Add New Member</h2>
+    <form method="POST" action="{{ url_for('book.add_student_route') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input class="form-control" name="name" type="text" placeholder="e.g. Jane Smith" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input class="form-control" name="username" type="text" placeholder="e.g. jane01" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-control" name="password" type="password" placeholder="Set a password" required>
+        </div>
+        <div class="form-group" style="flex:0">
+          <label class="form-label">&nbsp;</label>
+          <button type="submit" class="btn btn-primary">Add Member</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Member List -->
+  <div class="section-header">
+    <h2 class="section-title">Registered Members ({{ students|length }})</h2>
+  </div>
+
+  {% if students %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Username</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr>
+          <td style="color:var(--text-muted)">{{ s.user_id }}</td>
+          <td><strong>{{ s.name }}</strong></td>
+          <td style="color:var(--text-muted)">@{{ s.username }}</td>
+          <td>
+            <form method="POST"
+                  action="{{ url_for('book.delete_student_route', user_id=s.user_id) }}"
+                  onsubmit="return confirm('Are you sure you want to remove this member?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <h3>No members registered</h3>
+    <p>Use the form above to add member accounts, or members can sign up themselves.</p>
+  </div>
+  {% endif %}
+</div>
+
+<script>setTimeout(() => { document.querySelectorAll('.flash').forEach(el => el.remove()); }, 5000);</script>
+</body>
+</html>

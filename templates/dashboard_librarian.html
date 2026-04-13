@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Librarian Dashboard – Book Bank</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <a href="{{ url_for('book.index') }}" class="navbar-brand">
+    <span class="brand-icon">B</span> Book Bank
+  </a>
+  <ul class="navbar-nav">
+    <li><a class="nav-link active" href="{{ url_for('book.dashboard_librarian') }}">Dashboard</a></li>
+    <li><a class="nav-link" href="{{ url_for('book.books') }}">Books</a></li>
+    <li><a class="nav-link" href="{{ url_for('issue.issued_books') }}">Issued Books</a></li>
+    <li><a class="nav-link" href="{{ url_for('reservation.reservations') }}">Reservations</a></li>
+    <li><a class="nav-link" href="{{ url_for('book.manage_students') }}">Members</a></li>
+  </ul>
+  <div class="navbar-user">
+    <span class="user-badge">{{ session.role }}</span>
+    <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost btn-sm">Logout</a>
+  </div>
+</nav>
+
+<!-- Flash messages -->
+<div class="flash-container" id="flashContainer">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash flash-{{ category }}" onclick="this.remove()">
+        <span>{{ message }}</span>
+        <span class="flash-close">&times;</span>
+      </div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>Librarian Dashboard</h1>
+    <p>Complete overview of the Book Bank system.</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="card-grid">
+    <div class="stat-card">
+      <span class="stat-icon stat-icon-text">B</span>
+      <span class="stat-value">{{ total_books }}</span>
+      <span class="stat-label">Total Books</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon stat-icon-text">I</span>
+      <span class="stat-value">{{ issued_count }}</span>
+      <span class="stat-label">Currently Issued</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon stat-icon-text">M</span>
+      <span class="stat-value">{{ student_count }}</span>
+      <span class="stat-label">Registered Members</span>
+    </div>
+    <div class="stat-card" style="{% if overdue_count > 0 %}border-color:rgba(248,113,113,0.4){% endif %}">
+      <span class="stat-icon stat-icon-text">!</span>
+      <span class="stat-value" style="{% if overdue_count > 0 %}color:var(--danger){% endif %}">{{ overdue_count }}</span>
+      <span class="stat-label">Overdue Books</span>
+    </div>
+  </div>
+
+  <!-- Quick Links -->
+  <div class="section-header" style="margin-bottom:1rem">
+    <h2 class="section-title">Quick Actions</h2>
+  </div>
+  <div class="quick-links">
+    <a href="{{ url_for('book.books') }}" class="quick-link">
+      <span class="quick-link-title">Manage Books</span>
+      <span class="quick-link-desc">Add, edit or issue books</span>
+    </a>
+    <a href="{{ url_for('issue.issued_books') }}" class="quick-link">
+      <span class="quick-link-title">Issued Books</span>
+      <span class="quick-link-desc">Record returns and fines</span>
+    </a>
+    <a href="{{ url_for('reservation.reservations') }}" class="quick-link">
+      <span class="quick-link-title">Reservations</span>
+      <span class="quick-link-desc">View pending reservations</span>
+    </a>
+    <a href="{{ url_for('book.manage_students') }}" class="quick-link">
+      <span class="quick-link-title">Manage Members</span>
+      <span class="quick-link-desc">Add or remove members</span>
+    </a>
+  </div>
+
+  {% if overdue_count > 0 %}
+  <div class="card" style="margin-top:2rem;border-color:rgba(248,113,113,0.4);background:rgba(248,113,113,0.05)">
+    <p style="color:var(--danger);font-size:0.875rem">
+      <strong>Alert:</strong> {{ overdue_count }} book(s) are overdue.
+      <a href="{{ url_for('issue.issued_books') }}" style="color:var(--danger);text-decoration:underline">View and record returns &rarr;</a>
+    </p>
+  </div>
+  {% endif %}
+</div>
+
+<script>setTimeout(() => { document.querySelectorAll('.flash').forEach(el => el.remove()); }, 5000);</script>
+</body>
+</html>

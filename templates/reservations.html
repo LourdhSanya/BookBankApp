@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reservations – Book Bank</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="{{ url_for('book.index') }}" class="navbar-brand"><span class="brand-icon">B</span> Book Bank</a>
+  <ul class="navbar-nav">
+    {% if session.role == 'librarian' %}
+      <li><a class="nav-link" href="{{ url_for('book.dashboard_librarian') }}">Dashboard</a></li>
+    {% else %}
+      <li><a class="nav-link" href="{{ url_for('book.dashboard_student') }}">Dashboard</a></li>
+    {% endif %}
+    <li><a class="nav-link" href="{{ url_for('book.books') }}">Books</a></li>
+    <li><a class="nav-link" href="{{ url_for('issue.issued_books') }}">{% if session.role=='librarian' %}Issued Books{% else %}My Issues{% endif %}</a></li>
+    <li><a class="nav-link active" href="{{ url_for('reservation.reservations') }}">Reservations</a></li>
+    {% if session.role == 'librarian' %}
+      <li><a class="nav-link" href="{{ url_for('book.manage_students') }}">Members</a></li>
+    {% endif %}
+  </ul>
+  <div class="navbar-user">
+    <span class="user-badge">{{ session.role }}</span>
+    <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost btn-sm">Logout</a>
+  </div>
+</nav>
+
+<div class="flash-container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash flash-{{ category }}" onclick="this.remove()">
+        <span>{{ message }}</span><span class="flash-close">&times;</span>
+      </div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>{% if session.role == 'librarian' %}All Reservations{% else %}My Reservations{% endif %}</h1>
+    <p>Books you've reserved will be issued when they become available.</p>
+  </div>
+
+  {% if records %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          {% if session.role == 'librarian' %}<th>Member</th>{% endif %}
+          <th>Book Title</th>
+          <th>Author</th>
+          <th>Reserved On</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td style="color:var(--text-muted)">{{ r.reservation_id }}</td>
+          {% if session.role == 'librarian' %}
+          <td>{{ r.username }}</td>
+          {% endif %}
+          <td><strong>{{ r.book_name }}</strong></td>
+          <td style="color:var(--text-muted)">{{ r.author }}</td>
+          <td>{{ r.reservation_date }}</td>
+          <td>
+            <form method="POST"
+                  action="{{ url_for('reservation.cancel_reservation_route', reservation_id=r.reservation_id) }}"
+                  onsubmit="return confirm('Cancel this reservation?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <h3>No active reservations</h3>
+    <p>Reserve a book from the <a href="{{ url_for('book.books') }}">Books page</a> when it's not available.</p>
+  </div>
+  {% endif %}
+</div>
+
+<script>setTimeout(() => { document.querySelectorAll('.flash').forEach(el => el.remove()); }, 5000);</script>
+</body>
+</html>

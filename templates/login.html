@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login – Book Bank</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- Flash messages -->
+<div class="flash-container" id="flashContainer">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash flash-{{ category }}" onclick="this.remove()">
+        <span>{{ message }}</span>
+        <span class="flash-close">&times;</span>
+      </div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="logo-icon">B</span>
+      <h1>Book Bank</h1>
+      <p>Library Management System</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.login') }}" id="loginForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <input class="form-control" id="username" name="username"
+               type="text" placeholder="Enter your username"
+               autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-control" id="password" name="password"
+               type="password" placeholder="Enter your password"
+               autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg" style="width:100%;margin-top:0.5rem">
+        Sign In
+      </button>
+    </form>
+
+    <p style="text-align:center;margin-top:1.5rem;font-size:0.9rem;color:var(--text-muted)">
+      Don't have an account?
+      <a href="{{ url_for('auth.register') }}" style="color:var(--teal);text-decoration:none;font-weight:600">Create Account</a>
+    </p>
+
+    <p style="text-align:center;margin-top:0.5rem;font-size:0.8rem;color:var(--text-muted)">
+      Demo &mdash; Librarian: <strong style="color:var(--teal)">admin / admin123</strong> &nbsp;|&nbsp;
+      Member: <strong style="color:var(--teal)">student1 / pass123</strong>
+    </p>
+  </div>
+</div>
+
+<script>
+  setTimeout(() => {
+    document.querySelectorAll('.flash').forEach(el => el.remove());
+  }, 5000);
+</script>
+</body>
+</html>

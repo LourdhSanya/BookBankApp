@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – Book Bank</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <a href="{{ url_for('book.index') }}" class="navbar-brand">
+    <span class="brand-icon">B</span> Book Bank
+  </a>
+  <ul class="navbar-nav">
+    <li><a class="nav-link active" href="{{ url_for('book.dashboard_student') }}">Dashboard</a></li>
+    <li><a class="nav-link" href="{{ url_for('book.books') }}">Books</a></li>
+    <li><a class="nav-link" href="{{ url_for('issue.issued_books') }}">My Issues</a></li>
+    <li><a class="nav-link" href="{{ url_for('reservation.reservations') }}">My Reservations</a></li>
+  </ul>
+  <div class="navbar-user">
+    <span class="user-badge">{{ session.role }}</span>
+    <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost btn-sm">Logout</a>
+  </div>
+</nav>
+
+<!-- Flash messages -->
+<div class="flash-container" id="flashContainer">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash flash-{{ category }}" onclick="this.remove()">
+        <span>{{ message }}</span>
+        <span class="flash-close">&times;</span>
+      </div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>Welcome, {{ session.name }}</h1>
+    <p>Manage your borrowed books and reservations from your personal dashboard.</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="card-grid">
+    <div class="stat-card">
+      <span class="stat-icon stat-icon-text">I</span>
+      <span class="stat-value">{{ issued_count }}</span>
+      <span class="stat-label">Active Issues</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon stat-icon-text">R</span>
+      <span class="stat-value">{{ reservation_count }}</span>
+      <span class="stat-label">Reservations</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon stat-icon-text">D</span>
+      <span class="stat-value">14</span>
+      <span class="stat-label">Days Loan Period</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon stat-icon-text">F</span>
+      <span class="stat-value">1</span>
+      <span class="stat-label">Fine / Overdue Day</span>
+    </div>
+  </div>
+
+  <!-- Quick Links -->
+  <div class="section-header" style="margin-bottom:1rem">
+    <h2 class="section-title">Quick Actions</h2>
+  </div>
+  <div class="quick-links">
+    <a href="{{ url_for('book.books') }}" class="quick-link">
+      <span class="quick-link-title">Browse Books</span>
+      <span class="quick-link-desc">Search and request books</span>
+    </a>
+    <a href="{{ url_for('issue.issued_books') }}" class="quick-link">
+      <span class="quick-link-title">My Issued Books</span>
+      <span class="quick-link-desc">View due dates and fines</span>
+    </a>
+    <a href="{{ url_for('reservation.reservations') }}" class="quick-link">
+      <span class="quick-link-title">My Reservations</span>
+      <span class="quick-link-desc">Manage your reservations</span>
+    </a>
+  </div>
+
+  <!-- Info notice -->
+  <div class="card" style="margin-top:2rem;border-color:rgba(96,165,250,0.3);background:rgba(96,165,250,0.05)">
+    <p style="color:var(--info);font-size:0.875rem">
+      <strong>Note:</strong> Book issues must be approved by the librarian.
+      You can reserve unavailable books — the librarian will issue them once returned.
+      Late returns incur a fine of ₹1 per day.
+    </p>
+  </div>
+</div>
+
+<script>setTimeout(() => { document.querySelectorAll('.flash').forEach(el => el.remove()); }, 5000);</script>
+</body>
+</html>

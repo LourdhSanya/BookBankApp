@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Books – Book Bank</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <a href="{{ url_for('book.index') }}" class="navbar-brand">
+    <span class="brand-icon">B</span> Book Bank
+  </a>
+  <ul class="navbar-nav">
+    {% if session.role == 'librarian' %}
+      <li><a class="nav-link" href="{{ url_for('book.dashboard_librarian') }}">Dashboard</a></li>
+    {% else %}
+      <li><a class="nav-link" href="{{ url_for('book.dashboard_student') }}">Dashboard</a></li>
+    {% endif %}
+    <li><a class="nav-link active" href="{{ url_for('book.books') }}">Books</a></li>
+    <li><a class="nav-link" href="{{ url_for('issue.issued_books') }}">{% if session.role=='librarian' %}Issued Books{% else %}My Issues{% endif %}</a></li>
+    <li><a class="nav-link" href="{{ url_for('reservation.reservations') }}">Reservations</a></li>
+    {% if session.role == 'librarian' %}
+      <li><a class="nav-link" href="{{ url_for('book.manage_students') }}">Members</a></li>
+    {% endif %}
+  </ul>
+  <div class="navbar-user">
+    <span class="user-badge">{{ session.role }}</span>
+    <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost btn-sm">Logout</a>
+  </div>
+</nav>
+
+<!-- Flash messages -->
+<div class="flash-container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash flash-{{ category }}" onclick="this.remove()">
+        <span>{{ message }}</span>
+        <span class="flash-close">&times;</span>
+      </div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>Book Catalogue</h1>
+    <p>Browse and manage the library collection.</p>
+  </div>
+
+  <!-- Search Bar -->
+  <form method="GET" action="{{ url_for('book.books') }}" class="search-bar">
+    <input class="form-control" name="search" type="text"
+           placeholder="Search by title or author…"
+           value="{{ search }}">
+    <button type="submit" class="btn btn-primary">Search</button>
+    {% if search %}
+      <a href="{{ url_for('book.books') }}" class="btn btn-ghost">Clear</a>
+    {% endif %}
+  </form>
+
+  <!-- Add Book (Librarian) -->
+  {% if session.role == 'librarian' %}
+  <div class="section-header">
+    <h2 class="section-title">All Books</h2>
+    <button class="btn btn-primary" onclick="document.getElementById('addBookModal').classList.add('open')">
+      + Add Book
+    </button>
+  </div>
+  {% else %}
+  <div class="section-header">
+    <h2 class="section-title">Available Books</h2>
+  </div>
+  {% endif %}
+
+  <!-- Book Table -->
+  {% if books %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Title</th>
+          <th>Author</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in books %}
+        <tr>
+          <td style="color:var(--text-muted)">{{ b.book_id }}</td>
+          <td><strong>{{ b.book_name }}</strong></td>
+          <td style="color:var(--text-muted)">{{ b.author }}</td>
+          <td>
+            {% if b.status == 'Available' %}
+              <span class="badge badge-available">Available</span>
+            {% elif b.status == 'Issued' %}
+              <span class="badge badge-issued">Issued</span>
+            {% else %}
+              <span class="badge badge-reserved">Reserved</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if session.role == 'librarian' %}
+              <!-- Issue to student -->
+              {% if b.status != 'Issued' %}
+              <button class="btn btn-primary btn-sm"
+                      onclick="openIssueModal({{ b.book_id }}, '{{ b.book_name | e }}')">
+                Issue
+              </button>
+              {% endif %}
+              <!-- Edit -->
+              <button class="btn btn-ghost btn-sm"
+                      data-title="{{ b.book_name }}"
+                      data-author="{{ b.author }}"
+                      onclick="openEditModal({{ b.book_id }}, this.getAttribute('data-title'), this.getAttribute('data-author'))">
+                Edit
+              </button>
+              <!-- Delete -->
+              {% if b.status != 'Issued' %}
+              <form method="POST" action="{{ url_for('book.delete_book_route', book_id=b.book_id) }}"
+                    style="display:inline" onsubmit="return confirm('Delete this book?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              </form>
+              {% endif %}
+            {% else %}
+              <!-- Student: Request / Reserve -->
+              {% if b.status == 'Available' %}
+              <form method="POST" action="{{ url_for('reservation.reserve_book_route', book_id=b.book_id) }}" style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-primary btn-sm">Request</button>
+              </form>
+              {% else %}
+              <form method="POST" action="{{ url_for('reservation.reserve_book_route', book_id=b.book_id) }}" style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-accent btn-sm">Reserve</button>
+              </form>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <h3>No books found</h3>
+    <p>{% if search %}Try a different search term.{% else %}No books in the library yet.{% endif %}</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Add Book Modal -->
+{% if session.role == 'librarian' %}
+<div class="modal-overlay" id="addBookModal" onclick="closeModalIfOverlay(event, 'addBookModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">Add New Book</span>
+      <span class="modal-close" onclick="document.getElementById('addBookModal').classList.remove('open')">&times;</span>
+    </div>
+    <form method="POST" action="{{ url_for('book.add_book_route') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label class="form-label">Book Title</label>
+        <input class="form-control" name="book_name" type="text" placeholder="Enter book title" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Author</label>
+        <input class="form-control" name="author" type="text" placeholder="Enter author name" required>
+      </div>
+      <div style="display:flex;gap:0.75rem;justify-content:flex-end">
+        <button type="button" class="btn btn-ghost"
+                onclick="document.getElementById('addBookModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Book</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Book Modal -->
+<div class="modal-overlay" id="editBookModal" onclick="closeModalIfOverlay(event, 'editBookModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">Edit Book</span>
+      <span class="modal-close" onclick="document.getElementById('editBookModal').classList.remove('open')">&times;</span>
+    </div>
+    <form id="editBookForm" method="POST" action="">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label class="form-label">Book Title</label>
+        <input class="form-control" id="editBookName" name="book_name" type="text" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Author</label>
+        <input class="form-control" id="editAuthor" name="author" type="text" required>
+      </div>
+      <div style="display:flex;gap:0.75rem;justify-content:flex-end">
+        <button type="button" class="btn btn-ghost"
+                onclick="document.getElementById('editBookModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Issue Book Modal -->
+<div class="modal-overlay" id="issueModal" onclick="closeModalIfOverlay(event, 'issueModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">Issue Book</span>
+      <span class="modal-close" onclick="document.getElementById('issueModal').classList.remove('open')">&times;</span>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1.25rem" id="issueBookLabel"></p>
+    <form id="issueForm" method="POST" action="">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label class="form-label">Select Member</label>
+        <select class="form-control" name="user_id" required>
+          <option value="">— Choose a member —</option>
+          {% for s in students %}
+          <option value="{{ s.user_id }}">{{ s.name }} ({{ s.username }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="display:flex;gap:0.75rem;justify-content:flex-end">
+        <button type="button" class="btn btn-ghost"
+                onclick="document.getElementById('issueModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Confirm Issue</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<script>
+  function closeModalIfOverlay(e, id) {
+    if (e.target === e.currentTarget) document.getElementById(id).classList.remove('open');
+  }
+  function openIssueModal(bookId, bookName) {
+    document.getElementById('issueForm').action = '/issue/' + bookId;
+    document.getElementById('issueBookLabel').textContent = 'Issuing: ' + bookName;
+    document.getElementById('issueModal').classList.add('open');
+  }
+  function openEditModal(bookId, bookName, author) {
+    document.getElementById('editBookForm').action = '/books/update/' + bookId;
+    document.getElementById('editBookName').value = bookName;
+    document.getElementById('editAuthor').value = author;
+    document.getElementById('editBookModal').classList.add('open');
+  }
+  setTimeout(() => { document.querySelectorAll('.flash').forEach(el => el.remove()); }, 5000);
+</script>
+</body>
+</html>
